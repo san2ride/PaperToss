@@ -43,7 +43,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Variables
     
-    var grids = true
+    var grids = false
     
     var bg = SKSpriteNode(imageNamed: "bgImage")
     var bBack = SKSpriteNode(imageNamed: "binBack")
@@ -70,7 +70,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if UIDevice.current.userInterfaceIdiom == .phone {
             c.grav = -6
             c.yVel = self.frame.height / 4
-            c.airTime = 2
+            c.airTime = 1.5
         } else {
             // iPad
         }
@@ -110,7 +110,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bg.size.width = bg.size.height * bgScale
         bg.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2)
         bg.zPosition = 0
-        
         self.addChild(bg)
         
         let binScale = CGFloat(bBack.frame.width / bBack.frame.height)
@@ -119,13 +118,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bBack.size.width = bBack.size.height * binScale
         bBack.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 3)
         bBack.zPosition = bg.zPosition + 1
-        
         self.addChild(bBack)
         
         bFront.size = bBack.size
         bFront.position = bBack.position
         bFront.zPosition = bBack.zPosition + 3
-        
         self.addChild(bFront)
         
         startG = SKShapeNode(rectOf: CGSize(width: self.frame.width, height: 5))
@@ -141,7 +138,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         startG.physicsBody?.contactTestBitMask = pc.none
         startG.physicsBody?.affectedByGravity = false
         startG.physicsBody?.isDynamic = false
-        
         self.addChild(startG)
         
         endG = SKShapeNode(rectOf: CGSize(width: self.frame.width * 2, height: 5))
@@ -157,7 +153,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         endG.physicsBody?.contactTestBitMask = pc.none
         endG.physicsBody?.affectedByGravity = false
         endG.physicsBody?.isDynamic = false
-        
         self.addChild(endG)
         
         leftWall = SKShapeNode(rectOf: CGSize(width: 3, height: bFront.frame.height / 1.6))
@@ -174,7 +169,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         leftWall.physicsBody?.affectedByGravity = false
         leftWall.physicsBody?.isDynamic = false
         leftWall.zRotation = pi / 25
-        
         self.addChild(leftWall)
         
         rightWall = SKShapeNode(rectOf: CGSize(width: 3, height: bFront.frame.height / 1.6))
@@ -191,7 +185,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         rightWall.physicsBody?.affectedByGravity = false
         rightWall.physicsBody?.isDynamic = false
         rightWall.zRotation = -pi / 25
-        
         self.addChild(rightWall)
         
         base = SKShapeNode(rectOf: CGSize(width: bFront.frame.width / 2, height: 3))
@@ -207,17 +200,88 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         base.physicsBody?.contactTestBitMask = pc.ball
         base.physicsBody?.affectedByGravity = false
         base.physicsBody?.isDynamic = false
-        
         self.addChild(base)
         
-        // 58:14 
+        windLbl.text = "Wind = 0"
+        windLbl.position = CGPoint(x: self.frame.width / 2, y: self.frame.height * 4 / 5)
+        windLbl.fontSize = self.frame.width / 10
+        windLbl.zPosition = bg.zPosition + 1
+        self.addChild(windLbl)
         
-        
-        
+        setWind()
+        setBall()
         
     }
     
-    func fire() {
+    func setBall() {
         
+        pBall.removeFromParent()
+        ball.removeFromParent()
+        
+        ball.setScale(1)
+        
+        ball = SKShapeNode(circleOfRadius: bFront.frame.width / 1.5)
+        ball.fillColor = grids ? .blue : .clear
+        ball.strokeColor = .clear
+        ball.position = CGPoint(x: self.frame.width / 2, y: startG.position.y + ball.frame.height)
+        ball.zPosition = 10
+        
+        pBall.size = ball.frame.size
+        ball.addChild(pBall)
+        
+        ball.physicsBody = SKPhysicsBody(circleOfRadius: bFront.frame.width / 1.5)
+        ball.physicsBody?.categoryBitMask = pc.ball
+        ball.physicsBody?.collisionBitMask = pc.sG
+        ball.physicsBody?.contactTestBitMask = pc.base
+        ball.physicsBody?.affectedByGravity = true
+        ball.physicsBody?.isDynamic = true
+        self.addChild(ball)
+    }
+    
+    func setWind() {
+        
+        let multi = CGFloat(20)
+        let rnd = CGFloat(arc4random_uniform(UInt32(10))) - 5
+        
+        windLbl.text = "Wind: \(rnd)"
+        
+        wind = rnd * multi
+    }
+    
+    func fire() {
+        let xChange = t.end.x - t.start.x
+        
+        let angle = (atan(xChange / (t.end.y - t.start.y)) * 180 / pi)
+        let amendedX = (tan(angle * pi / 100) * c.yVel) * 0.5
+        
+        // Throw it!
+        let throwVec = CGVector(dx: amendedX, dy: c.yVel)
+        ball.physicsBody?.applyImpulse(throwVec, at: t.start)
+        
+        // Shrink
+        ball.run(SKAction.scale(by: 0.3, duration: c.airTime))
+        
+        // Change Collision Bitmask
+        let wait = SKAction.wait(forDuration: c.airTime / 2)
+        let changeCollision = SKAction.run ({
+            self.ball.physicsBody?.collisionBitMask = pc.sG | pc.eG | pc.base | pc.lBin | pc.rBin
+            self.ball.zPosition = self.bg.zPosition + 2
+        })
+        
+        // Add Wind
+        let windWait = SKAction.wait(forDuration: c.airTime / 4)
+        let push = SKAction.applyImpulse(CGVector(dx: wind, dy: 0), duration: 1)
+        ball.run(SKAction.sequence([windWait,push]))
+        
+        self.run(SKAction.sequence([wait,changeCollision]))
+        
+        // Wait & Reset
+        let wait4 = SKAction.wait(forDuration: 4)
+        let reset = SKAction.run ({
+            self.setWind()
+            self.setBall()
+        })
+        
+        self.run(SKAction.sequence([wait4,reset]))
     }
 }
