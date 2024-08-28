@@ -26,7 +26,7 @@ struct pc {
     static let eG: UInt32 = 0x1 << 6
 }
 
-// Statrt and End Touch points
+// Start and End Touch points
 struct t {
     static var start = CGPoint()
     static var end = CGPoint()
@@ -42,7 +42,6 @@ struct c {
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Variables
-    
     var grids = false
     
     var bg = SKSpriteNode(imageNamed: "bgImage")
@@ -69,7 +68,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         if UIDevice.current.userInterfaceIdiom == .phone {
             c.grav = -6
-            c.yVel = self.frame.height / 4
+            c.yVel = self.frame.height / 3
             c.airTime = 1.5
         } else {
             // iPad
@@ -203,8 +202,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(base)
         
         windLbl.text = "Wind = 0"
-        windLbl.position = CGPoint(x: self.frame.width / 2, y: self.frame.height * 4 / 5)
-        windLbl.fontSize = self.frame.width / 10
+        windLbl.position = CGPoint(x: self.frame.width / 2, y: self.frame.height * 5 / 6)
+        windLbl.fontSize = self.frame.width / 5
         windLbl.zPosition = bg.zPosition + 1
         self.addChild(windLbl)
         
@@ -214,7 +213,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func setBall() {
-        
         pBall.removeFromParent()
         ball.removeFromParent()
         
@@ -243,8 +241,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let multi = CGFloat(20)
         let rnd = CGFloat(arc4random_uniform(UInt32(10))) - 5
         
-        windLbl.text = "Wind: \(rnd)"
-        
+        windLbl.text = "🌬️ \(rnd)"
         wind = rnd * multi
     }
     
